@@ -81,7 +81,7 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
             for pwd_info in passwords:
                 location = pwd_info.get("location", "未知地点")
                 password = pwd_info.get("password", "未知密码")
-                full_text = pwd_info.get("full_text", f"{location}密码：{password}")
+                full_text = pwd_info.get("full_text", f"{location}：{password}")
                 result.append(f"  • {full_text}")
             
             
