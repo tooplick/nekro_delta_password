@@ -19,10 +19,9 @@
 
 ### 在 NekroAgent 中使用
 
-插件提供了一个名为"查询三角洲密码"的沙盒方法，可以通过以下方式调用：
+插件提供了一个"get_delta_password()"的沙盒方法，可以通过以下方式手动调用：
 
 ```python
-# 手动使用
 /exec get_delta_password()
 ```
 
