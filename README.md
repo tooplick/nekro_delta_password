@@ -12,7 +12,7 @@
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| API_URL | str | `https://cyapi.top/API/sjzxd_password.php` | 三角洲今日密码API地址 |
+| API_URL | str | `https://www.tmini.net/api/sjzmm?ckey=&type=` | 三角洲今日密码API地址 |
 | TIMEOUT | int | `10` | API请求超时时间(秒) |
 
 ## 使用方法
