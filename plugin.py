@@ -68,7 +68,7 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
         
         # 使用更合适的请求头
         headers = {
-            "Accept": "text/html, */*"
+            "Accept": "text/plain, */*"
         }
         
         async with httpx.AsyncClient(timeout=config.TIMEOUT) as client:
