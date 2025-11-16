@@ -17,7 +17,7 @@ plugin = NekroPlugin(
     name="三角洲今日密码查询插件",
     module_name="delta_password",
     description="提供三角洲行动游戏的今日密码查询功能",
-    version="1.0.0",
+    version="1.1.0",
     author="GeQian",
     url="https://github.com/tooplick/nekro_delta_password",
 )
@@ -34,7 +34,7 @@ class DeltaPasswordConfig(ConfigBase):
         description="三角洲今日密码API的基础URL",
     )
     TIMEOUT: int = Field(
-        default=10,
+        default=15,
         title="请求超时时间",
         description="API请求的超时时间(秒)",
     )
@@ -63,8 +63,12 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
         get_delta_password()
     """
     try:
+        logger.info("开始获取三角洲今日密码...")
+        
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
         }
         
         async with httpx.AsyncClient(timeout=config.TIMEOUT) as client:
@@ -72,7 +76,7 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
             response.raise_for_status()
             text_data = response.text
             
-            logger.info(f"API返回数据: {text_data[:200]}...")  # 记录前200字符用于调试
+            logger.info(f"API响应成功，数据长度: {len(text_data)}")
             
             # 解析文本数据
             lines = text_data.strip().split('\n')
@@ -102,7 +106,7 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
                     location = line.replace("地图名称:", "").strip()
                     
                     # 在接下来的几行中查找密码
-                    for j in range(i+1, min(i+10, len(lines))):  # 最多向后查找10行
+                    for j in range(i+1, min(i+10, len(lines))):
                         next_line = lines[j].strip()
                         if next_line.startswith("密码:"):
                             password = next_line.replace("密码:", "").strip()
@@ -110,6 +114,7 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
                                 "location": location,
                                 "password": password
                             })
+                            logger.info(f"解析到密码: {location} - {password}")
                             break
             
             if not password_data:
@@ -122,14 +127,19 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
                 password = pwd_info.get("password", "未知密码")
                 result.append(f"  • {location}：{password}")
             
-            return "\n".join(result)
+            final_result = "\n".join(result)
+            logger.info("密码查询成功完成")
+            return final_result
             
     except httpx.RequestError as e:
         logger.error(f"请求三角洲今日密码API时出错: {e}")
         return "请求三角洲今日密码API时出错，请检查网络连接后重试。"
+    except httpx.HTTPStatusError as e:
+        logger.error(f"API返回错误状态码: {e.response.status_code}")
+        return f"API服务器返回错误，状态码: {e.response.status_code}"
     except Exception as e:
         logger.exception(f"处理三角洲今日密码API响应时发生未知错误: {e}")
-        return "处理三角洲今日密码API响应时出错，请稍后重试或联系管理员检查插件。"
+        return f"处理数据时发生错误: {str(e)}"
 
 
 @plugin.mount_cleanup_method()
