@@ -64,13 +64,15 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
     """
     try:
         headers = {
-            "Content-Type": "application/none"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
         
         async with httpx.AsyncClient(timeout=config.TIMEOUT) as client:
             response = await client.get(config.API_URL, headers=headers)
             response.raise_for_status()
             text_data = response.text
+            
+            logger.info(f"API返回数据: {text_data[:200]}...")  # 记录前200字符用于调试
             
             # 解析文本数据
             lines = text_data.strip().split('\n')
@@ -79,37 +81,42 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
                 return "未找到密码信息，请稍后重试。"
             
             # 提取更新日期
-            date_line = lines[0]
-            if "更新日期:" in date_line:
-                date = date_line.replace("更新日期:", "").strip()
-            else:
-                date = "未知日期"
+            update_date = "今日"
+            for line in lines:
+                if "更新日期:" in line:
+                    date_part = line.split("更新日期:")[1].strip()
+                    if "每日密码" in date_part:
+                        update_date = date_part.split("每日密码")[0].strip()
+                    else:
+                        update_date = date_part
+                    break
             
             # 解析地图名称和密码
             password_data = []
-            current_map = None
-            current_password = None
             
-            for line in lines:
+            for i, line in enumerate(lines):
                 line = line.strip()
-                if "地图名称:" in line:
-                    current_map = line.replace("地图名称:", "").strip()
-                elif "密码:" in line:
-                    current_password = line.replace("密码:", "").strip()
-                    # 当同时有地图名称和密码时，添加到结果中
-                    if current_map and current_password:
-                        password_data.append({
-                            "location": current_map,
-                            "password": current_password
-                        })
-                        current_map = None
-                        current_password = None
+                
+                # 查找地图名称行
+                if line.startswith("地图名称:"):
+                    location = line.replace("地图名称:", "").strip()
+                    
+                    # 在接下来的几行中查找密码
+                    for j in range(i+1, min(i+10, len(lines))):  # 最多向后查找10行
+                        next_line = lines[j].strip()
+                        if next_line.startswith("密码:"):
+                            password = next_line.replace("密码:", "").strip()
+                            password_data.append({
+                                "location": location,
+                                "password": password
+                            })
+                            break
             
             if not password_data:
-                return f"今日({date})未找到密码信息，请稍后重试。"
+                return f"今日({update_date})未找到密码信息，请稍后重试或检查API格式是否变化。"
             
             # 构建返回结果
-            result = [f"三角洲行动今日密码 - {date}"]
+            result = [f"三角洲行动{update_date}密码信息："]
             for pwd_info in password_data:
                 location = pwd_info.get("location", "未知地点")
                 password = pwd_info.get("password", "未知密码")
@@ -119,10 +126,10 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
             
     except httpx.RequestError as e:
         logger.error(f"请求三角洲今日密码API时出错: {e}")
-        return "请求三角洲今日密码API时出错，请稍后重试。"
+        return "请求三角洲今日密码API时出错，请检查网络连接后重试。"
     except Exception as e:
         logger.exception(f"处理三角洲今日密码API响应时发生未知错误: {e}")
-        return "处理三角洲今日密码API响应时出错，请稍后重试。"
+        return "处理三角洲今日密码API响应时出错，请稍后重试或联系管理员检查插件。"
 
 
 @plugin.mount_cleanup_method()
