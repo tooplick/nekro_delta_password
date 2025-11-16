@@ -4,7 +4,7 @@
 使用 tmini.net API 获取密码数据。
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 import re
 
 import httpx
@@ -25,6 +25,7 @@ plugin = NekroPlugin(
 
 
 # 插件配置
+@plugin.mount_config()
 class DeltaPasswordConfig(ConfigBase):
     """三角洲今日密码查询配置"""
 
@@ -41,57 +42,7 @@ class DeltaPasswordConfig(ConfigBase):
 
 
 # 获取配置实例
-config: Optional[DeltaPasswordConfig] = None
-
-
-def parse_fallback(text_data: str) -> List[Dict]:
-    """备用解析方法"""
-    password_data = []
-    lines = text_data.strip().split('\n')
-    
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-        
-        if line.startswith("地图名称:"):
-            location = line.replace("地图名称:", "").strip()
-            
-            # 向后查找密码
-            j = i + 1
-            while j < len(lines) and j < i + 5:
-                next_line = lines[j].strip()
-                if next_line.startswith("密码:"):
-                    password = next_line.replace("密码:", "").strip()
-                    password_data.append({
-                        "location": location,
-                        "password": password
-                    })
-                    i = j  # 跳过已处理的行
-                    break
-                j += 1
-        i += 1
-    
-    return password_data
-
-
-def extract_update_date(text_data: str) -> str:
-    """提取更新日期"""
-    lines = text_data.strip().split('\n')
-    for line in lines:
-        if "更新日期:" in line:
-            date_part = line.split("更新日期:")[1].strip()
-            if "每日密码" in date_part:
-                return date_part.split("每日密码")[0].strip()
-            return date_part
-    return "今日"
-
-
-@plugin.mount_config(DeltaPasswordConfig)
-def setup_config(cfg: DeltaPasswordConfig):
-    """配置挂载回调"""
-    global config
-    config = cfg
-    logger.info("三角洲今日密码查询插件配置已加载")
+config: DeltaPasswordConfig = plugin.get_config(DeltaPasswordConfig)
 
 
 @plugin.mount_sandbox_method(
@@ -112,9 +63,6 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
         查询三角洲今日密码:
         get_delta_password()
     """
-    if config is None:
-        return "插件配置未正确加载，请检查插件配置。"
-    
     try:
         logger.info("开始获取三角洲今日密码...")
         
@@ -181,9 +129,49 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
         return f"处理数据时发生错误: {str(e)}"
 
 
+def parse_fallback(text_data: str) -> List[Dict]:
+    """备用解析方法"""
+    password_data = []
+    lines = text_data.strip().split('\n')
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        if line.startswith("地图名称:"):
+            location = line.replace("地图名称:", "").strip()
+            
+            # 向后查找密码
+            j = i + 1
+            while j < len(lines) and j < i + 5:
+                next_line = lines[j].strip()
+                if next_line.startswith("密码:"):
+                    password = next_line.replace("密码:", "").strip()
+                    password_data.append({
+                        "location": location,
+                        "password": password
+                    })
+                    i = j  # 跳过已处理的行
+                    break
+                j += 1
+        i += 1
+    
+    return password_data
+
+
+def extract_update_date(text_data: str) -> str:
+    """提取更新日期"""
+    lines = text_data.strip().split('\n')
+    for line in lines:
+        if "更新日期:" in line:
+            date_part = line.split("更新日期:")[1].strip()
+            if "每日密码" in date_part:
+                return date_part.split("每日密码")[0].strip()
+            return date_part
+    return "今日"
+
+
 @plugin.mount_cleanup_method()
 async def clean_up():
     """清理插件资源"""
-    global config
-    config = None
     logger.info("三角洲今日密码查询插件资源已清理。")
