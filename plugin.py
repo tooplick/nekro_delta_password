@@ -27,13 +27,17 @@ plugin = NekroPlugin(
 # 插件配置
 @plugin.mount_config()
 class DeltaPasswordConfig(ConfigBase):
-    """三角洲今日密码查询配置"""
+    """三角洲今日密码查询配置
+
+    配置插件使用的API地址和请求超时时间。
+    """
 
     API_URL: str = Field(
         default="https://www.tmini.net/api/sjzmm?ckey=&type=",
-        title="三角洲今日密码API地址",
-        description="三角洲今日密码API的基础URL",
+        title="API地址",
+        description="三角洲今日密码API的基础URL地址",
     )
+    
     TIMEOUT: int = Field(
         default=15,
         title="请求超时时间",
