@@ -18,7 +18,7 @@ plugin = NekroPlugin(
     name="三角洲今日密码查询插件",
     module_name="delta_password",
     description="提供三角洲行动游戏的今日密码查询功能",
-    version="2.0.0",
+    version="1.1.0",
     author="GeQian",
     url="https://github.com/tooplick/nekro_delta_password",
 )
@@ -66,10 +66,9 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
     try:
         logger.info("开始获取三角洲今日密码...")
         
-        # 使用简单但有效的请求头
+        # 使用更合适的请求头
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "text/plain, */*"
+            "Accept": "text/html, */*"
         }
         
         async with httpx.AsyncClient(timeout=config.TIMEOUT) as client:
@@ -79,7 +78,7 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
             
             logger.info(f"API响应成功，数据长度: {len(text_data)}")
             
-            # 方法1: 使用正则表达式提取地图和密码（最稳定）
+            # 使用正则表达式提取地图和密码（更健壮的方法）
             password_data = []
             
             # 正则表达式匹配模式：地图名称: 值 和 密码: 值
@@ -106,10 +105,14 @@ async def get_delta_password(_ctx: AgentCtx) -> str:
             # 提取更新日期
             update_date = extract_update_date(text_data)
             
-            # 构建简洁的结果
-            result = format_password_result(password_data, update_date)
-            logger.info("密码查询成功完成")
-            return result
+            # 构建返回结果
+            result = [f"三角洲行动{update_date}密码信息："]
+            for pwd_info in password_data:
+                location = pwd_info.get("location", "未知地点")
+                password = pwd_info.get("password", "未知密码")
+                result.append(f"  • {location}：{password}")
+            
+            return "\n".join(result)
             
     except httpx.RequestError as e:
         logger.error(f"请求三角洲今日密码API时出错: {e}")
@@ -162,18 +165,6 @@ def extract_update_date(text_data: str) -> str:
                 return date_part.split("每日密码")[0].strip()
             return date_part
     return "今日"
-
-
-def format_password_result(password_data: List[Dict], update_date: str) -> str:
-    """格式化密码结果"""
-    result_lines = [f"三角洲行动{update_date}密码信息："]
-    
-    for pwd_info in password_data:
-        location = pwd_info.get("location", "未知地点")
-        password = pwd_info.get("password", "未知密码")
-        result_lines.append(f"  • {location}：{password}")
-    
-    return "\n".join(result_lines)
 
 
 @plugin.mount_cleanup_method()
