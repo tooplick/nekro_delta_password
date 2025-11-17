@@ -52,5 +52,5 @@
 
 **tooplick** - GitHub: [@tooplick](https://github.com/tooplick)
 
-项目链接: [https://github.com/tooplick/nekro_delta_password](https://github.com/tooplick/nekro_delta_password)
+项目链接: [https://github.com/tooplick/nekro_delta_password](https://github.com/tooplick/nekro_delta_password)  
 Nekro Agent 文档: [https://doc.nekro.ai/](https://doc.nekro.ai/)
